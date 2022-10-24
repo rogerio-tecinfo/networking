@@ -208,6 +208,42 @@ variable "publicip_sku" {
   default     = "Basic"
 }
 
+variable "lb" {
+  type        = string
+  description = "Virtual network Name used for all resources"
+  default     = "az104-06-lb4"
+}
+
+variable "back_pool" {
+  type        = string
+  description = "Virtual network Name used for all resources"
+  default     = "BackEndAddressPool"
+}
+
+variable "lbnat_pool" {
+  type        = string
+  description = "Virtual network Name used for all resources"
+  default     = "PublicIPAddress"
+}
+
+variable "lb_probe" {
+  type        = string
+  description = "Virtual network Name used for all resources"
+  default     = "http-probe"
+}
+
+variable "app_gateway" {
+  type        = string
+  description = "Virtual network Name used for all resources"
+  default     = "az104-06-appgw5"
+}
+
+variable "app_back_gateway" {
+  type        = string
+  description = "Virtual network Name used for all resources"
+  default     = "az104-06-appgw5-be1"
+}
+
 variable "nsg" {
   type        = string
   description = "Network Security Group Name used for all resources"

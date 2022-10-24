@@ -406,3 +406,97 @@ resource "azurerm_windows_virtual_machine" "name3" {
 
   depends_on = [azurerm_windows_virtual_machine.name1, azurerm_subnet.subnet4]
 }
+
+# Create Load Balance
+resource "azurerm_lb" "lb" {
+  name                = var.lb
+  location            = azurerm_resource_group.resourcegroup2.location
+  resource_group_name = azurerm_resource_group.resourcegroup2.name
+  depends_on          = [azurerm_public_ip.publicip4]
+  frontend_ip_configuration {
+    name                 = "PublicIPAddress"
+    public_ip_address_id = azurerm_public_ip.publicip4.id
+  }
+}
+
+# Create Backend Pool
+resource "azurerm_lb_backend_address_pool" "back_pool" {
+  loadbalancer_id     = azurerm_lb.lb.id
+  name                = var.back_pool
+  depends_on          = [azurerm_lb.lb]
+}
+
+#Create Load Balance Nat Pool using only VM scale Sets!
+resource "azurerm_lb_nat_pool" "lbnatpool" {
+  resource_group_name            = azurerm_resource_group.resourcegroup2.name
+  name                           = "az104-06-lb4-be1"
+  loadbalancer_id                = azurerm_lb.lb.id
+  protocol                       = "Tcp"
+  frontend_port_start            = 50000
+  frontend_port_end              = 50119
+  backend_port                   = 80
+  frontend_ip_configuration_name = var.lbnat_pool
+  depends_on          = [azurerm_lb.lb]
+}
+
+resource "azurerm_lb_rule""lb_rule" {
+  loadbalancer_id                = azurerm_lb.lb.id
+  name                           = "LBRule"
+  protocol                       = "Tcp"
+  frontend_port                  = 80
+  backend_port                   = 80
+  frontend_ip_configuration_name = "PublicIPAddress"
+}
+
+resource "azurerm_lb_probe" "lb_probe" {
+  loadbalancer_id     = azurerm_lb.lb.id
+  name                = var.lb_probe
+  protocol            = "Http"
+  request_path        = "/*"
+  port                = 80
+  interval_in_seconds = 5
+  number_of_probes    = 2
+  depends_on          = [azurerm_lb.lb]
+  }
+
+#Association VM networking interfaces on Azure Load Balance
+ resource "azurerm_network_interface_backend_address_pool_association" "connect_nic0" {
+  network_interface_id    = azurerm_network_interface.nic0.id
+  ip_configuration_name   = "nic_ip_config"
+  backend_address_pool_id = azurerm_lb_backend_address_pool.back_pool.id
+  depends_on          = [azurerm_lb.lb]
+} 
+
+resource "azurerm_network_interface_backend_address_pool_association" "connect_nic1" {
+  network_interface_id    = azurerm_network_interface.nic1.id
+  ip_configuration_name   = "nic_ip_config"
+  backend_address_pool_id = azurerm_lb_backend_address_pool.back_pool.id
+  depends_on          = [azurerm_lb.lb]
+}
+
+#Create Application Gateway
+resource "azurerm_application_gateway" "app_gateway" {
+  name                = var.app_gateway
+  resource_group_name = azurerm_resource_group.resourcegroup3.name
+  location            = azurerm_resource_group.resourcegroup3.location
+  sku {
+    name     = "Standard_Small"
+    tier     = "Standard v2"
+    capacity = 2
+  }
+ 
+ gateway_ip_configuration {
+  name                = var.app_gateway
+  subnet_id           = azurerm_subnet.subnet2.id
+ }
+
+ frontend_ip_configuration {
+    name                 = var.app_gateway
+    public_ip_address_id = azurerm_public_ip.publicip5.id
+  }
+
+ backend_address_pool {
+    name = var.app_back_gateway
+  }
+  
+ 
